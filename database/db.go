@@ -1,6 +1,6 @@
 package database
 
-import(
+import (
 	"database/sql"
 	"fmt"
 	"os"
@@ -21,11 +21,11 @@ func ConnectAndMigrate() error {
 		return err
 	}
 
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", 
-		os.Getenv("DB_host"), 
-		os.Getenv("DB_port"), 
-		os.Getenv("DB_user"), 
-		os.Getenv("DB_password"), 
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		os.Getenv("DB_host"),
+		os.Getenv("DB_port"),
+		os.Getenv("DB_user"),
+		os.Getenv("DB_password"),
 		os.Getenv("DB_name"),
 	)
 
@@ -51,7 +51,7 @@ func migrateUp(db *sql.DB) error {
 
 	logrus.Println("done creating migration")
 	m, err := migrate.NewWithDatabaseInstance(
-		"file:///home/ray/Golang_Projects/restro/database/migrations",
+		"file:///home/ray/ray/Golang_Projects/restro/database/migrations",
 		"postgres", driver)
 	if err != nil {
 		return err

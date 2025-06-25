@@ -1,0 +1,18 @@
+DROP INDEX IF EXISTS unique_menu;
+DROP TABLE IF EXISTS menu;
+
+DROP INDEX IF EXISTS restaurant_ownerid;
+DROP TABLE IF EXISTS restaurants;
+
+DROP TABLE IF EXISTS address;
+
+DROP INDEX IF EXISTS unique_role;
+DROP TABLE IF EXISTS user_roles;
+
+DROP TYPE IF EXISTS role_type;
+
+DROP INDEX IF EXISTS users_createdby;
+DROP INDEX IF EXISTS active_user;
+DROP TABLE IF EXISTS users;
+
+DROP EXTENSION IF EXISTS "pgcrypto";

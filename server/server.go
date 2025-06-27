@@ -37,6 +37,7 @@ func SetupRoutes() *Server {
 	router.HandleFunc("/refresh", handlers.RefershToken).Methods("POST")
 	router.HandleFunc("/login", handlers.Login).Methods("POST")
 	authRoutes.HandleFunc("/logout", handlers.Logout).Methods("POST")
+	authRoutes.HandleFunc("/address",handlers.AddAddress).Methods("POST")
 
 	authRoutes.HandleFunc("/restaurants", handlers.ListRestaurants).Methods("GET")
 	authRoutes.HandleFunc("/restaurants/{id}/dishes", handlers.GetDishesByRestaurant).Methods("GET")
@@ -50,12 +51,12 @@ func SetupRoutes() *Server {
 	admin.HandleFunc("/subadmins", handlers.ListSubAdmins).Methods("GET")
 
 	// admin n subadmin
-	adminSub := authRoutes.PathPrefix("/admin").Subrouter()
+	adminSub := authRoutes.PathPrefix("/subadmin").Subrouter()
 	adminSub.Use(middlewares.RoleBasedMiddleware(models.RoleAdmin, models.RoleSubAdmin))
 
+	adminSub.HandleFunc("/resources", handlers.CreateResource).Methods("POST")
 	adminSub.HandleFunc("/users", handlers.ListAllUsersBySubAdmin).Methods("GET")
 	adminSub.HandleFunc("/resources", handlers.ListResources).Methods("GET")
-	adminSub.HandleFunc("/resources", handlers.CreateResource).Methods("POST")
 
 	return &Server {
 		Router: router,

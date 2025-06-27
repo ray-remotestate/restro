@@ -8,13 +8,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/sirupsen/logrus"
 	"github.com/ray-remotestate/restro/config"
 	"github.com/ray-remotestate/restro/database"
 	"github.com/ray-remotestate/restro/database/dbhelper"
 	"github.com/ray-remotestate/restro/middlewares"
 	"github.com/ray-remotestate/restro/models"
 	"github.com/ray-remotestate/restro/utils"
-	"github.com/sirupsen/logrus"
 )
 
 func Register(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +33,10 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	if req.Name == "" || req.Email == "" || req.Password == "" {
 		http.Error(w, "all fields are required", http.StatusBadRequest)
 		return
+	}
+
+	if len(req.Password) < 6 {
+		http.Error(w, "password must be at least 6 characters", http.StatusBadRequest)
 	}
 
 	exists, err := dbhelper.IsUserExists(req.Email)
@@ -79,7 +83,6 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Respond with token
 	resp := map[string]interface{}{
 		"user_id": userID,
 		"email":   req.Email,
@@ -230,18 +233,18 @@ func CreateSubAdmin(w http.ResponseWriter, r *http.Request) {
 
 	var req request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		http.Error(w, "invalid request", http.StatusBadRequest)
 		return
 	}
 
 	if req.Name == "" || req.Email == "" {
-		http.Error(w, "Name and email are required", http.StatusBadRequest)
+		http.Error(w, "name and email are required", http.StatusBadRequest)
 		return
 	}
 
 	userID, err := dbhelper.GetUserByEmail(req.Email)
 	if err != nil && err != sql.ErrNoRows {
-		http.Error(w, "Server error", http.StatusInternalServerError)
+		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
 	if err == sql.ErrNoRows {
@@ -261,6 +264,7 @@ func CreateSubAdmin(w http.ResponseWriter, r *http.Request) {
 		// 	http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		// 	return
 		// }
+		return
 	}
 
 	isSubAdmin, err := dbhelper.IsSubAdmin(userID)
@@ -326,16 +330,15 @@ func ListAllUsersBySubAdmin(w http.ResponseWriter, r *http.Request) {
 		Email string    `json:"email"`
 	}
 
-	// Extract user info from context
 	userID, ok := r.Context().Value("user_id").(uuid.UUID)
 	if !ok {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	roles, ok := r.Context().Value("roles").([]string)
 	if !ok || len(roles) == 0 {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -347,7 +350,6 @@ func ListAllUsersBySubAdmin(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Construct query based on role
 	var rows *sql.Rows
 	var err error
 
@@ -358,7 +360,6 @@ func ListAllUsersBySubAdmin(w http.ResponseWriter, r *http.Request) {
 			WHERE archived_at IS NULL
 		`)
 	} else {
-		// Subadmin: only see users they created
 		rows, err = database.Restro.Query(`
 			SELECT id, name, email
 			FROM users
@@ -389,4 +390,46 @@ func ListAllUsersBySubAdmin(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(users)
+}
+
+func AddAddress(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value("user_id").(uuid.UUID)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	type Input struct {
+		Address   string  `json:"address"`
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+	}
+
+	var input Input
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "invalid JSON input", http.StatusBadRequest)
+		return
+	}
+
+	if input.Address == "" {
+		http.Error(w, "address is required", http.StatusBadRequest)
+		return
+	}
+
+	var addressID uuid.UUID
+	err := database.Restro.QueryRow(`
+		INSERT INTO addresses (user_id, address, latitude, longitude)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id
+	`, userID, input.Address, input.Latitude, input.Longitude).Scan(&addressID)
+	if err != nil {
+		http.Error(w, "failed to add address", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{
+		"message":    "Address added successfully",
+		"address_id": addressID.String(),
+	})
 }

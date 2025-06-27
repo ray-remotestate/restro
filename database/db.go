@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var TodoEx *sql.DB
+var Restro *sql.DB
 
 func ConnectAndMigrate() error {
 	err := godotenv.Load()
@@ -39,7 +39,7 @@ func ConnectAndMigrate() error {
 		return err
 	}
 
-	TodoEx = DB
+	Restro = DB
 	return migrateUp(DB)
 }
 
@@ -70,11 +70,11 @@ func migrateUp(db *sql.DB) error {
 }
 
 func ShutdownDatabase() error {
-	return TodoEx.Close()
+	return Restro.Close()
 }
 
 func Tx(fn func(tx *sql.Tx) error) error {
-	tx, err := TodoEx.Begin()
+	tx, err := Restro.Begin()
 	if err != nil {
 		return err
 	}

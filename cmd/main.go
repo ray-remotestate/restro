@@ -10,11 +10,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/ray-remotestate/restro/database"
 	"github.com/ray-remotestate/restro/server"
+	"github.com/ray-remotestate/restro/config"
 )
 
 const shutdownTimeOut = 10 * time.Second
 
 func main() {
+	config.Init()
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
@@ -25,7 +27,7 @@ func main() {
 	}
 	logrus.Println("migration is successful")
 
-	func() {
+	go func() {
 		log.Println("Server starting at :8080")
 		if err := svr.Run(":8080"); err != nil {
 			logrus.Panicf("Server didn't start! %+v", err)
@@ -42,5 +44,5 @@ func main() {
 		logrus.WithError(err).Error("failed to gracefully shutdown server")
 	}
 
-	logrus.Info("system is shut ...zzz")
+	logrus.Info("system is shut")
 }
